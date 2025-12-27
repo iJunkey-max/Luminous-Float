@@ -1,0 +1,488 @@
+/* Theme Name: Luminous Float
+   Author: Junkey
+   Version: 2.0.01
+   Description: Restored V32 button spacing logic to fix overflow, enforced right sidebar glass effect with !important.
+*/
+
+/* ==========================================================================
+   0. 全局变量 (Design Tokens)
+   ========================================================================== */
+:root {
+    /* --- 字体设置 --- */
+    --font-ui: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", sans-serif;
+    --font-text-theme: var(--font-ui);
+    --font-monospace-theme: "JetBrains Mono", "Consolas", monospace;
+
+    /* --- 尺寸设置 --- */
+    --radius-s: 6px;
+    --radius-m: 10px;
+    --radius-l: 16px;
+    
+    --floating-gap: 12px;
+    --capsule-height: 38px;
+    
+    /* 默认宽度 (会被 JS 动态覆盖) */
+    --sidebar-width: 260px; 
+    
+    /* --- 排版设置 --- */
+    --font-text-size: 16px;
+    --line-height: 1.75;
+}
+
+/* --- 日间模式配色 (Light) --- */
+.theme-light {
+    --text-normal: #1f2937;
+    --text-muted: #6b7280;
+    --text-faint: #9ca3af;
+    --text-accent: #0071e3;
+    --text-bold: #0071e3;
+    
+    --background-primary: rgba(255, 255, 255, 0.85);
+    --background-primary-alt: rgba(247, 248, 250, 0.6);
+    --background-secondary: rgba(245, 245, 247, 0.65);
+    --background-secondary-alt: rgba(255, 255, 255, 0.4); 
+    
+    --background-modifier-border: rgba(0, 0, 0, 0.08);
+    --background-modifier-hover: rgba(0, 0, 0, 0.04);
+    
+    --text-highlight-bg: rgba(255, 215, 0, 0.3);
+    
+    --shadow-float: 0 10px 30px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.4) inset;
+    --shadow-card: 0 2px 12px rgba(0,0,0,0.04);
+    --shadow-popover: 0 4px 12px rgba(0,0,0,0.1);
+
+    --color-red: #ef4444;
+    --color-orange: #f97316;
+    --color-green: #10b981;
+    --color-blue: #0071e3;
+    
+    --mermaid-fill: #f0f7ff;
+    --mermaid-stroke: #0071e3;
+    --mermaid-text: #111111;
+    --mermaid-gantt-bar: #81b0ff;
+    --mermaid-gantt-text: #000000;
+}
+
+/* --- 夜间模式配色 (Dark) --- */
+.theme-dark {
+    --text-normal: #f3f4f6;
+    --text-muted: #9ca3af;
+    --text-accent: #60a5fa;
+    --text-bold: #60a5fa;
+
+    --background-primary: rgba(30, 30, 30, 0.7);
+    --background-primary-alt: rgba(40, 40, 40, 0.6);
+    --background-secondary: rgba(25, 25, 25, 0.6);
+    --background-secondary-alt: rgba(40, 40, 40, 0.4);
+    
+    --background-modifier-border: rgba(255, 255, 255, 0.1);
+    --text-highlight-bg: rgba(255, 215, 0, 0.2);
+    
+    --shadow-float: 0 15px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    --shadow-card: 0 4px 16px rgba(0,0,0,0.3);
+    --shadow-popover: 0 4px 12px rgba(0,0,0,0.4);
+
+    --mermaid-fill: #1e3a8a;
+    --mermaid-stroke: #60a5fa;
+    --mermaid-text: #ffffff;
+    --mermaid-gantt-bar: #3b82f6;
+    --mermaid-gantt-text: #ffffff;
+}
+
+/* ==========================================================================
+   1. 布局与背景 (Layout)
+   ========================================================================== */
+
+body {
+    background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    margin: 0;
+}
+
+/* Fix 1: 右上角胶囊 (Restored V32 Spacing) */
+.titlebar {
+    position: fixed !important;
+    top: var(--floating-gap) !important;
+    right: 12px !important; 
+    left: auto !important;
+    
+    width: var(--sidebar-width) !important; 
+    min-width: 140px; 
+    box-sizing: border-box !important;
+    
+    height: var(--capsule-height) !important;
+    background-color: var(--background-secondary) !important;
+    backdrop-filter: blur(20px) saturate(120%) !important;
+    border-radius: 20px !important;
+    border: 1px solid var(--background-modifier-border) !important;
+    box-shadow: var(--shadow-float) !important;
+    z-index: 99999 !important;
+    
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    
+    /* 关键修复 (参照 V32)：右侧 24px，左侧 16px */
+    padding: 0 24px 0 16px !important; 
+    
+    pointer-events: none !important;
+    -webkit-app-region: drag !important;
+    overflow: hidden !important;
+    
+    transition: width 0.1s ease-out, right 0.3s ease, left 0.3s ease, transform 0.3s ease !important;
+}
+
+/* 折叠状态 */
+body.is-right-collapsed .titlebar {
+    right: 12px !important;
+    left: auto !important;
+    transform: none !important;
+    width: auto !important;
+    min-width: 78px !important;
+    padding: 0 8px !important;
+}
+
+body.is-right-collapsed .titlebar-time {
+    display: none !important;
+}
+
+.titlebar-text, .titlebar-bg { display: none !important; }
+
+/* 按钮容器 */
+.titlebar-button-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    order: 2 !important;
+    
+    flex-shrink: 0 !important;
+    
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    
+    /* 关键修复 (参照 V32)：右侧 12px 边距，确保不贴边 */
+    margin: 0 12px 0 0 !important; 
+    
+    height: 100% !important;
+    
+    pointer-events: auto !important;
+    -webkit-app-region: no-drag !important;
+}
+
+/* 红绿灯按钮 */
+.titlebar-button {
+    width: 13px !important;
+    height: 13px !important;
+    min-width: 13px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: transparent !important;
+    color: transparent !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1) !important;
+    -webkit-app-region: no-drag !important;
+    cursor: default !important;
+    pointer-events: auto !important;
+}
+.titlebar-button:hover { opacity: 0.8; transform: scale(1.1); }
+
+.titlebar-button.mod-close { background-color: #ff5f56 !important; }
+.titlebar-button.mod-minimize { background-color: #ffbd2e !important; }
+.titlebar-button.mod-maximize { background-color: #27c93f !important; }
+.titlebar-button.mod-restore { background-color: #27c93f !important; }
+
+/* 时间显示 */
+.titlebar-time {
+    order: -1 !important; 
+    font-family: var(--font-ui) !important;
+    font-variant-numeric: tabular-nums !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: var(--text-normal) !important;
+    opacity: 0.5 !important;
+    line-height: 1;
+    margin-right: auto !important; 
+    
+    white-space: nowrap !important;
+    overflow: visible !important; 
+    flex-shrink: 0 !important; 
+    min-width: auto !important;
+    
+    pointer-events: auto !important;
+    -webkit-app-region: drag !important;
+}
+
+/* 1.2 悬浮面板布局 */
+@media screen and (min-width: 768px) {
+    /* 左侧 Ribbon */
+    .workspace-ribbon.mod-left {
+        margin: var(--floating-gap) 0 var(--floating-gap) var(--floating-gap);
+        height: calc(100% - 2 * var(--floating-gap));
+        border-radius: var(--radius-l);
+        background-color: var(--background-secondary) !important;
+        backdrop-filter: blur(25px) saturate(120%);
+        border: 1px solid var(--background-modifier-border);
+        box-shadow: var(--shadow-float);
+        padding-top: 50px !important;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden !important;
+        transform: translateZ(0); 
+    }
+    
+    /* 左侧 Sidebar */
+    .workspace-split.mod-left-split {
+        margin: var(--floating-gap) 0 var(--floating-gap) var(--floating-gap);
+        height: calc(100% - 2 * var(--floating-gap));
+        border-radius: var(--radius-l);
+        background-color: var(--background-secondary);
+        backdrop-filter: blur(25px) saturate(120%);
+        border: 1px solid var(--background-modifier-border);
+        box-shadow: var(--shadow-float);
+        overflow: hidden !important;
+        transform: translateZ(0);
+    }
+
+    /* 主编辑器 */
+    .workspace-split.mod-root {
+        margin: var(--floating-gap);
+        height: calc(100% - 2 * var(--floating-gap));
+        border-radius: var(--radius-l);
+        background-color: var(--background-primary);
+        border: 1px solid var(--background-modifier-border);
+        box-shadow: var(--shadow-float);
+        overflow: hidden !important;
+        transform: translateZ(0);
+    }
+    
+    /* Fix 2: 右侧 Sidebar (强制开启玻璃效果) */
+    .workspace-split.mod-right-split {
+        margin: calc(var(--floating-gap) + var(--capsule-height) + 12px) var(--floating-gap) var(--floating-gap) 0;
+        height: calc(100% - 2 * var(--floating-gap) - var(--capsule-height) - 12px);
+        border-radius: var(--radius-l);
+        
+        /* 关键修复：加回 !important 和 saturate，与 V32 一致 */
+        background-color: var(--background-secondary) !important;
+        backdrop-filter: blur(25px) saturate(120%) !important;
+        
+        border: 1px solid var(--background-modifier-border);
+        box-shadow: var(--shadow-float);
+        overflow: hidden !important;
+        transform: translateZ(0);
+    }
+}
+
+/* ==========================================================================
+   2. 界面组件 (UI Components)
+   ========================================================================== */
+
+/* 标题栏玻璃效果 */
+.view-header, .workspace-tab-header-container {
+    background-color: var(--background-secondary-alt) !important;
+    backdrop-filter: blur(25px) saturate(120%) !important;
+    border-bottom: 1px solid var(--background-modifier-border) !important;
+}
+.workspace-tab-header.is-active {
+    background-color: rgba(255,255,255,0.3) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+/* 右侧边栏图标显示修复 */
+.workspace-split.mod-right-split .workspace-tab-header-container {
+    overflow: visible !important;
+    z-index: 10 !important;
+    padding-right: 12px !important;
+}
+.workspace-split.mod-right-split .workspace-tab-header-inner-icon {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* ==========================================================================
+   3. 渲染还原 (Restored)
+   ========================================================================== */
+
+.view-content, .cm-scroller, .markdown-preview-view {
+    background-color: var(--background-primary) !important;
+}
+.markdown-source-view, .markdown-preview-view {
+    padding: 30px 60px !important;
+    font-size: var(--font-text-size);
+    color: var(--text-normal);
+    line-height: var(--line-height);
+}
+
+h1, h2, h3 { color: var(--text-normal); letter-spacing: -0.02em; margin-top: 1.5em; }
+h2 { border-bottom: 1px solid var(--background-modifier-border); padding-bottom: 8px; }
+
+strong, .cm-strong { color: var(--text-bold) !important; font-weight: 700; }
+mark, .cm-highlight { background-color: var(--text-highlight-bg); border-radius: 4px; padding: 0 2px; }
+
+/* 表格 */
+.markdown-preview-view table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: 1.5em 0;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    background-color: var(--background-primary-alt); 
+}
+.markdown-preview-view th {
+    background-color: rgba(0,0,0,0.03);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+.markdown-preview-view td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background-color: transparent;
+}
+.markdown-preview-view tr:nth-child(even) td { background-color: rgba(0,0,0,0.015); }
+.markdown-preview-view tr:last-child td { border-bottom: none; }
+
+/* Callouts */
+.callout {
+    background-color: var(--background-primary-alt);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: var(--radius-m);
+    padding: 0;
+    margin: 1.5em 0;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+.callout-title {
+    padding: 12px 16px;
+    background-color: rgba(var(--callout-color), 0.08);
+    color: rgb(var(--callout-color));
+    font-weight: 600;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+.callout-content { padding: 12px 16px; }
+
+/* 引用块 */
+.markdown-preview-view blockquote {
+    border: none;
+    border-left: 3px solid var(--text-accent);
+    background-color: var(--background-primary-alt);
+    padding: 16px 20px;
+    margin: 1.5em 0;
+    border-radius: 0 var(--radius-m) var(--radius-m) 0;
+    color: var(--text-muted);
+    box-shadow: var(--shadow-card);
+    font-style: normal;
+}
+.markdown-source-view .cm-quote {
+    background-color: transparent !important;
+    color: var(--text-muted) !important;
+}
+
+/* Mermaid */
+.mermaid {
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: 24px;
+    display: flex; justify-content: center;
+    box-shadow: var(--shadow-card);
+}
+:root { --mermaid-font-family: var(--font-ui); }
+
+.mermaid text, .mermaid tspan, .mermaid .taskText, .mermaid .titleText, .mermaid .nodeLabel { 
+    fill: var(--mermaid-text) !important; 
+    color: var(--mermaid-text) !important; 
+    font-size: 14px !important; 
+}
+
+.mermaid .node rect, .mermaid .node circle, .mermaid .node polygon {
+    fill: var(--mermaid-fill) !important;
+    stroke: var(--mermaid-stroke) !important;
+    stroke-width: 1.5px !important;
+}
+.mermaid .edgePath .path { stroke: var(--text-muted) !important; stroke-width: 1.5px !important; }
+.mermaid .label { color: var(--mermaid-text) !important; }
+
+/* 代码块 */
+.markdown-preview-view pre {
+    background-color: var(--background-primary-alt);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: 40px 20px 20px 20px !important;
+    position: relative;
+    box-shadow: var(--shadow-card);
+}
+.markdown-preview-view pre::before {
+    content: ''; position: absolute; top: 16px; left: 16px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #ff5f56;
+    box-shadow: 18px 0 0 #ffbd2e, 36px 0 0 #27c93f;
+}
+code { font-family: var(--font-monospace-theme); color: #d12e63; }
+
+/* 图片 */
+.markdown-preview-view img {
+    display: block; margin: 20px auto; border-radius: var(--radius-m);
+    box-shadow: var(--shadow-card); max-width: 100%;
+}
+
+/* ==========================================================================
+   3. 状态栏 (悬浮胶囊显示)
+   ========================================================================== */
+.status-bar {
+    position: fixed !important;
+    bottom: 12px !important;  /* 距离底部 12px */
+    right: 12px !important;   /* 距离右侧 12px */
+    width: auto !important;   /* 宽度自适应 */
+    background: var(--background-secondary) !important;
+    border: 1px solid var(--background-modifier-border) !important;
+    border-radius: 20px !important; /* 胶囊圆角 */
+    color: var(--text-muted) !important;
+    font-size: 12px !important;
+    padding: 4px 16px !important;
+    backdrop-filter: blur(10px) !important; /* 毛玻璃 */
+    box-shadow: var(--shadow-popover) !important;
+    z-index: 100 !important;
+    
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.status-bar-item {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* ==========================================================================
+   4. 打印优化
+   ========================================================================== */
+@media print {
+    body { background: none !important; }
+    .app-container, .workspace-split, .view-content {
+        background: #fff !important; margin: 0 !important; border: none !important; box-shadow: none !important;
+    }
+    .workspace-ribbon, .titlebar, .status-bar, .mod-left-split, .mod-right-split { display: none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    blockquote, .callout {
+        border: 1px solid #eee !important;
+        background-color: #f9f9f9 !important;
+        page-break-inside: avoid;
+    }
+    blockquote { border-left: 4px solid #0071e3 !important; }
+    strong { color: #0071e3 !important; font-weight: bold !important; }
+}

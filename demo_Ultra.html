@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Obsidian Luminous Float - Pro Web IDE</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    
+    <style>
+        /* ==========================================================================
+           1. Core Variables & Theme
+           ========================================================================== */
+        :root {
+            --font-ui: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", sans-serif;
+            --font-text-theme: var(--font-ui);
+            --font-monospace-theme: "JetBrains Mono", "Consolas", monospace;
+
+            --radius-s: 6px; --radius-m: 10px; --radius-l: 16px;
+            
+            --floating-gap: 12px;
+            --sidebar-width: 260px;
+            --left-sidebar-width: 260px;
+            
+            --font-text-size: 16px; --line-height: 1.75;
+            
+            /* Loading Screen */
+            --splash-bg: #ffffff;
+            --splash-text: #1d1d1f;
+        }
+
+        /* --- Light Mode --- */
+        body.theme-light {
+            --text-normal: #1f2937; --text-muted: #6b7280; --text-faint: #9ca3af;
+            --text-accent: #0071e3; --text-bold: #0071e3;
+            
+            --background-primary: rgba(255, 255, 255, 0.95);
+            --background-primary-alt: rgba(247, 248, 250, 0.8);
+            --background-secondary: rgba(255, 255, 255, 0.75);
+            --background-secondary-alt: rgba(255, 255, 255, 0.4); 
+            
+            --background-modifier-border: rgba(0, 0, 0, 0.08);
+            --background-modifier-hover: rgba(0, 0, 0, 0.04);
+            --text-highlight-bg: rgba(255, 215, 0, 0.3);
+            
+            --shadow-float: 0 10px 30px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.4) inset;
+            --shadow-card: 0 2px 12px rgba(0,0,0,0.04);
+            --shadow-popover: 0 4px 12px rgba(0,0,0,0.1);
+
+            --color-red: #ef4444; --color-orange: #f97316;
+            --color-green: #10b981; --color-blue: #0071e3;
+            
+            --mermaid-fill: #f0f7ff; --mermaid-stroke: #0071e3; --mermaid-text: #111111;
+            
+            --bg-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');
+            
+            --splash-bg: #f5f5f7;
+        }
+
+        /* --- Dark Mode --- */
+        body.theme-dark {
+            --text-normal: #f3f4f6; --text-muted: #9ca3af; --text-faint: #6b7280;
+            --text-accent: #60a5fa; --text-bold: #60a5fa;
+
+            --background-primary: rgba(30, 30, 30, 0.85);
+            --background-primary-alt: rgba(40, 40, 40, 0.6);
+            --background-secondary: rgba(25, 25, 25, 0.75);
+            --background-secondary-alt: rgba(40, 40, 40, 0.4);
+            
+            --background-modifier-border: rgba(255, 255, 255, 0.1);
+            --background-modifier-hover: rgba(255, 255, 255, 0.08);
+            --text-highlight-bg: rgba(255, 215, 0, 0.2);
+            
+            --shadow-float: 0 15px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            --shadow-card: 0 4px 16px rgba(0,0,0,0.3);
+            --shadow-popover: 0 4px 12px rgba(0,0,0,0.4);
+
+            --color-red: #ef4444; --color-orange: #f97316;
+            --color-green: #10b981; --color-blue: #60a5fa;
+
+            --mermaid-fill: #1e3a8a; --mermaid-stroke: #60a5fa; --mermaid-text: #ffffff;
+            
+            --bg-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+            
+            --splash-bg: #111; --splash-text: #fff;
+        }
+
+        /* 基础重置 */
+        body {
+            margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden;
+            font-family: var(--font-ui); color: var(--text-normal);
+            background-image: var(--bg-image);
+            background-size: cover; background-position: center;
+            transition: background-image 0.5s ease;
+        }
+        * { box-sizing: border-box; }
+
+        /* --- 开屏动画 --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--splash-bg); z-index: 99999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.6s ease-out;
+        }
+        .splash-logo { font-size: 60px; color: var(--text-accent); margin-bottom: 20px; animation: pulse 2s infinite; }
+        .splash-text { font-size: 18px; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* --- 布局容器 --- */
+        .app-container { display: flex; width: 100%; height: 100%; }
+
+        /* 左侧 Ribbon (已集成文件操作按钮) */
+        .workspace-ribbon {
+            width: 50px; margin: var(--floating-gap) 0 var(--floating-gap) var(--floating-gap);
+            background: var(--background-secondary); backdrop-filter: blur(25px);
+            border-radius: var(--radius-l); border: 1px solid var(--background-modifier-border);
+            box-shadow: var(--shadow-float);
+            display: flex; flex-direction: column; align-items: center; padding-top: 20px;
+            flex-shrink: 0; z-index: 100; transition: transform 0.3s ease; gap: 10px;
+        }
+        .ribbon-action {
+            width: 34px; height: 34px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .ribbon-action:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+        .ribbon-action.is-active { background: rgba(0,0,0,0.05); color: var(--text-accent); }
+        
+        /* 侧边栏容器 */
+        .workspace-split {
+            height: calc(100% - 2 * var(--floating-gap));
+            margin: var(--floating-gap) 0 var(--floating-gap) var(--floating-gap);
+            background: var(--background-secondary); backdrop-filter: blur(25px) saturate(120%);
+            border-radius: var(--radius-l); border: 1px solid var(--background-modifier-border);
+            box-shadow: var(--shadow-float);
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), margin 0.3s ease, opacity 0.3s ease;
+            position: relative;
+        }
+        
+        /* 拖拽手柄样式 */
+        .resize-handle {
+            position: absolute; width: 6px; height: 100%; top: 0; cursor: col-resize; z-index: 200;
+            transition: background 0.2s; opacity: 0;
+        }
+        .resize-handle:hover, .resize-handle.active { opacity: 1; background: var(--text-accent); }
+        .resize-handle.left-handle { right: 0; }
+        .resize-handle.right-handle { left: 0; }
+        
+        .mod-left-split { width: var(--left-sidebar-width); flex-shrink: 0; margin-right: 0; }
+        .mod-right-split { 
+            width: var(--sidebar-width); flex-shrink: 0; margin-right: var(--floating-gap); margin-left: 0;
+            margin-top: var(--floating-gap);
+            height: calc(100% - 2 * var(--floating-gap));
+        }
+
+        .mod-left-split.is-collapsed { width: 0 !important; margin-right: 0; opacity: 0; pointer-events: none; border: none; }
+        .mod-right-split.is-collapsed { width: 0 !important; margin-left: 0; opacity: 0; pointer-events: none; border: none; }
+
+        /* 主编辑区 */
+        .mod-root {
+            flex-grow: 1; margin: var(--floating-gap);
+            background: var(--background-primary);
+            border-radius: var(--radius-l); border: 1px solid var(--background-modifier-border);
+            box-shadow: var(--shadow-float);
+            display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+
+        /* --- 编辑器内部组件 --- */
+        .view-header {
+            height: 48px; display: flex; align-items: center; padding: 0 20px;
+            background: var(--background-secondary-alt); border-bottom: 1px solid var(--background-modifier-border);
+            font-size: 14px; font-weight: 600; color: var(--text-muted); justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .view-actions { display: flex; gap: 8px; }
+        .view-action { 
+            cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; 
+            display: flex; align-items: center;
+        }
+        .view-action:hover { color: var(--text-normal); background: var(--background-modifier-hover); }
+        .view-action.is-active { color: var(--text-accent); background: rgba(0,0,0,0.05); }
+
+        .sidebar-search { padding: 12px; border-bottom: 1px solid var(--background-modifier-border); display: flex; gap: 8px; }
+        .search-input {
+            width: 100%; border: 1px solid var(--background-modifier-border); border-radius: 6px;
+            padding: 6px 10px; background: rgba(255,255,255,0.1); font-family: var(--font-ui); color: var(--text-normal);
+            font-size: 13px; outline: none; transition: all 0.2s;
+        }
+        .search-input:focus { border-color: var(--text-accent); background: var(--background-primary); box-shadow: 0 0 0 2px rgba(0,113,227,0.1); }
+        
+        /* 文件列表样式 */
+        .nav-files { flex-grow: 1; overflow-y: auto; padding: 0 8px; }
+        .nav-folder { margin-bottom: 2px; }
+        .nav-folder-title, .nav-file-title {
+            padding: 4px 8px; border-radius: 6px; cursor: pointer;
+            font-size: 14px; color: var(--text-normal); display: flex; align-items: center; gap: 6px;
+            transition: background 0.1s; user-select: none;
+        }
+        .nav-folder-title:hover, .nav-file-title:hover { background: var(--background-modifier-hover); }
+        .nav-file-title.is-active { background: var(--text-accent); color: white; font-weight: 500; }
+        .nav-file-title.is-active i { color: white; }
+        .nav-icon { color: var(--text-muted); font-size: 16px; opacity: 0.8; }
+        .nav-folder-children { padding-left: 16px; border-left: 1px solid var(--background-modifier-border); margin-left: 8px; display: none; }
+        .nav-folder.is-open > .nav-folder-children { display: block; }
+        .nav-folder-arrow { transition: transform 0.2s; font-size: 12px; }
+        .nav-folder.is-open > .nav-folder-title .nav-folder-arrow { transform: rotate(90deg); }
+
+        /* 编辑器区域 */
+        .editor-container { position: relative; flex-grow: 1; overflow: hidden; display: flex; }
+        
+        .mode-source .markdown-preview-view { display: none; }
+        .mode-source .markdown-source-view { display: block; }
+        .mode-preview .markdown-preview-view { display: block; }
+        .mode-preview .markdown-source-view { display: none; }
+        .mode-split .editor-container { flex-direction: row; }
+        .mode-split .markdown-source-view { display: block; width: 50%; border-right: 1px solid var(--background-modifier-border); }
+        .mode-split .markdown-preview-view { display: block; width: 50%; }
+
+        .markdown-preview-view {
+            width: 100%; height: 100%; padding: 40px 60px; overflow-y: auto;
+            font-size: var(--font-text-size); line-height: var(--line-height); color: var(--text-normal);
+        }
+        
+        .markdown-source-view {
+            width: 100%; height: 100%; border: none; resize: none; outline: none;
+            padding: 40px 60px; font-family: var(--font-monospace-theme);
+            font-size: 14px; line-height: 1.6; background: transparent; color: var(--text-normal);
+        }
+
+        /* 渲染样式 */
+        h1 { font-size: 2.2em; margin-bottom: 0.8em; color: var(--text-normal); font-weight: 700; border-bottom: none; }
+        h2 { font-size: 1.6em; border-bottom: 1px solid var(--background-modifier-border); padding-bottom: 0.3em; margin-top: 1.5em; font-weight: 600; color: var(--text-normal); }
+        p { margin-bottom: 1.2em; }
+        strong { color: var(--text-bold); font-weight: 700; }
+        mark { background: var(--text-highlight-bg); padding: 0 2px; border-radius: 4px; color: inherit; }
+        
+        blockquote {
+            border-left: 3px solid var(--text-accent); background: var(--background-primary-alt);
+            padding: 16px 20px; margin: 1.5em 0; border-radius: 0 10px 10px 0; color: var(--text-muted);
+            box-shadow: var(--shadow-card);
+        }
+        
+        /* 修复代码块内代码渲染 */
+        code { font-family: var(--font-monospace-theme); color: #d12e63; background: var(--background-primary-alt); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--background-modifier-border); }
+        pre code { background: transparent !important; padding: 0 !important; border: none !important; color: inherit !important; }
+        
+        pre {
+            background: var(--background-primary-alt); border-radius: var(--radius-m);
+            border: 1px solid var(--background-modifier-border); padding: 40px 20px 20px;
+            position: relative; box-shadow: var(--shadow-card); overflow-x: auto;
+        }
+        pre::before {
+            content: ''; position: absolute; top: 16px; left: 16px;
+            width: 10px; height: 10px; border-radius: 50%; background: #ff5f56;
+            box-shadow: 18px 0 0 #ffbd2e, 36px 0 0 #27c93f;
+        }
+
+        table {
+            width: 100%; border-collapse: separate; border-spacing: 0;
+            border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m);
+            overflow: hidden; margin: 1.5em 0; box-shadow: var(--shadow-card); background: var(--background-primary-alt);
+        }
+        th { background: rgba(0,0,0,0.03); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--background-modifier-border); font-size: 0.85em; text-transform: uppercase; color: var(--text-muted); }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--background-modifier-border); background: transparent; color: var(--text-normal); }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) td { background-color: rgba(0,0,0,0.015); }
+
+        .callout {
+            background: var(--background-primary-alt); border: 1px solid rgba(0,0,0,0.05);
+            border-radius: var(--radius-m); margin: 1.5em 0; overflow: hidden; box-shadow: var(--shadow-card);
+        }
+        .callout-title {
+            padding: 12px 16px; font-weight: 600; display: flex; gap: 8px; align-items: center;
+            background: rgba(var(--rgb), 0.08); color: rgb(var(--rgb)); border-bottom: 1px solid rgba(0,0,0,0.03);
+        }
+        .callout-content { padding: 12px 16px; color: var(--text-normal); }
+
+        .mermaid {
+            display: flex; justify-content: center; background: var(--background-primary-alt);
+            padding: 20px; border-radius: var(--radius-m); margin: 1.5em 0; border: 1px solid var(--background-modifier-border);
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            position: fixed; bottom: 12px; right: 12px;
+            background: var(--background-secondary); backdrop-filter: blur(10px);
+            padding: 6px 16px; border-radius: 20px; border: 1px solid var(--background-modifier-border);
+            font-size: 12px; color: var(--text-muted); box-shadow: var(--shadow-popover);
+            display: flex; gap: 12px; z-index: 1000;
+        }
+
+        /* 设置模态框 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); backdrop-filter: blur(5px);
+            z-index: 9999; display: none; align-items: center; justify-content: center;
+        }
+        .modal {
+            background: var(--background-primary); width: 400px; padding: 24px;
+            border-radius: var(--radius-l); box-shadow: var(--shadow-float);
+            border: 1px solid var(--background-modifier-border);
+        }
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 16px; }
+        .modal-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .modal-close { margin-top: 20px; text-align: right; }
+        .btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--background-modifier-border); cursor: pointer; background: var(--background-secondary); }
+
+        /* --- 移动端适配 --- */
+        @media screen and (max-width: 768px) {
+            .workspace-ribbon, .mod-left-split, .mod-right-split {
+                position: absolute; height: 100% !important; margin: 0 !important; top: 0; z-index: 2000;
+                box-shadow: 0 0 50px rgba(0,0,0,0.2) !important; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            }
+            .workspace-ribbon { left: 0; width: 50px; }
+            .mod-left-split { left: 50px; width: 80%; border-radius: 0 16px 16px 0 !important; }
+            .mod-right-split { right: 0; width: 80%; border-radius: 16px 0 0 16px !important; margin-top: 0 !important; }
+            .mod-root { margin: 0 !important; border-radius: 0 !important; border: none !important; }
+            .status-bar { bottom: 10px; right: 10px; }
+            
+            /* 默认折叠 */
+            .mod-left-split:not(.is-open) { transform: translateX(-120%); opacity: 1; pointer-events: none; width: 80% !important; }
+            .mod-left-split.is-open { transform: translateX(0); width: 80% !important; pointer-events: auto; }
+            
+            .mod-right-split:not(.is-open) { transform: translateX(120%); opacity: 1; pointer-events: none; width: 80% !important; }
+            .mod-right-split.is-open { transform: translateX(0); width: 80% !important; pointer-events: auto; }
+        }
+
+        /* 打印样式 */
+        @media print {
+            body { background: white !important; }
+            .workspace-ribbon, .status-bar, .mod-left-split, .mod-right-split { display: none !important; }
+            .mod-root { border: none !important; box-shadow: none !important; margin: 0 !important; }
+            .view-header { display: none; }
+            .markdown-preview-view { padding: 0 !important; overflow: visible !important; }
+            pre, blockquote, .callout, table, .mermaid { border: 1px solid #ccc !important; page-break-inside: avoid; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+
+    </style>
+</head>
+<body class="theme-light">
+
+    <!-- 开屏动画 -->
+    <div id="splash-screen">
+        <div class="splash-logo"><i class="ri-markdown-fill"></i></div>
+        <div class="splash-text">Luminous Float IDE</div>
+    </div>
+
+    <!-- 隐藏的文件上传控件 -->
+    <input type="file" id="file-uploader" accept=".md" style="display:none" onchange="handleFileUpload(this)">
+
+    <!-- 设置模态框 -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">Settings</div>
+            <div class="modal-item">
+                <span>Theme Mode</span>
+                <button class="btn" onclick="toggleTheme()">Switch</button>
+            </div>
+            <div class="modal-item">
+                <span>Version</span>
+                <span style="color:var(--text-muted)">V43.0 Pro</span>
+            </div>
+            <div class="modal-close"><button class="btn" onclick="toggleSettings()">Close</button></div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- 左侧 Ribbon (功能按钮移入此处) -->
+        <div class="workspace-ribbon">
+            <div class="ribbon-action is-active" onclick="toggleSidebar('left')" title="Toggle Left Sidebar"><i class="ri-layout-left-line"></i></div>
+            
+            <div style="height: 10px;"></div> <!-- Spacer -->
+            
+            <div class="ribbon-action" title="Open Local File" onclick="document.getElementById('file-uploader').click()"><i class="ri-upload-line"></i></div>
+            <div class="ribbon-action" title="Download Current" onclick="saveToLocal()"><i class="ri-download-line"></i></div>
+            <div class="ribbon-action" title="Export PDF" onclick="printPdf()"><i class="ri-file-pdf-line"></i></div>
+            
+            <div style="flex-grow:1"></div>
+            <div class="ribbon-action" title="Settings" onclick="toggleSettings()"><i class="ri-settings-3-line"></i></div>
+        </div>
+
+        <!-- 左侧侧边栏 (文件列表) -->
+        <div class="workspace-split mod-left-split" id="left-sidebar">
+            <div class="resize-handle left-handle" id="resize-handle-left"></div>
+            <div class="view-header">
+                <span>FILES</span>
+                <div class="view-actions">
+                    <i class="ri-folder-add-line icon-btn" title="New Folder" onclick="createNewFolder()"></i>
+                    <i class="ri-file-add-line icon-btn" title="New File" onclick="createNewFile()"></i>
+                </div>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" class="search-input" id="search-input" placeholder="Search..." oninput="filterFiles(this.value)">
+            </div>
+            <div class="nav-files" id="file-list"></div>
+        </div>
+
+        <!-- 主编辑器 -->
+        <div class="workspace-split mod-root mode-preview" id="editor-wrapper">
+            <div class="view-header">
+                <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                    <i class="ri-file-markdown-line"></i> 
+                    <input type="text" id="doc-title-input" value="Untitled" 
+                           style="border:none; background:transparent; font-weight:600; color:var(--text-normal); outline:none; font-family:inherit; width:200px;"
+                           onchange="renameCurrentFile(this.value)">
+                </div>
+                <div class="view-actions">
+                    <i class="ri-layout-right-line view-action" title="Toggle Right Sidebar" onclick="toggleSidebar('right')"></i>
+                    <div class="view-action" onclick="setMode('source')" title="Edit Mode"><i class="ri-edit-line"></i></div>
+                    <div class="view-action" onclick="setMode('split')" title="Split View"><i class="ri-layout-column-line"></i></div>
+                    <div class="view-action is-active" onclick="setMode('preview')" title="Reading Mode"><i class="ri-eye-line"></i></div>
+                </div>
+            </div>
+            <div class="editor-container">
+                <textarea class="markdown-source-view" id="source-view" placeholder="Start typing..." oninput="handleInput()"></textarea>
+                <div class="markdown-preview-view" id="preview-view"></div>
+            </div>
+        </div>
+
+        <!-- 右侧侧边栏 -->
+        <div class="workspace-split mod-right-split" id="right-sidebar">
+            <div class="resize-handle right-handle" id="resize-handle-right"></div>
+            <div class="view-header">
+                <span>OUTLINE</span>
+                <i class="ri-close-line icon-btn" onclick="toggleSidebar('right')"></i>
+            </div>
+            <div style="padding:20px; font-size:13px; color:var(--text-muted);" id="outline-view">
+                <!-- Outline -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="status-bar">
+        <span><i class="ri-text"></i> <span id="word-count">0</span> words</span>
+        <span><i class="ri-save-3-line"></i> <span id="save-status">Saved</span></span>
+    </div>
+
+    <script>
+        // ==========================================================================
+        // 核心应用逻辑
+        // ==========================================================================
+        
+        const STORE_KEY = 'obsidian_web_v3';
+        let fileSystem = JSON.parse(localStorage.getItem(STORE_KEY)) || {
+            'root': { id: 'root', type: 'folder', title: 'Root', parentId: null, isOpen: true },
+            'welcome': { id: 'welcome', type: 'file', title: 'Welcome.md', parentId: 'root', content: "# Hello World\n\nWelcome to **Luminous Float Web IDE**.\n\n```javascript\nconsole.log('Fixed Code Block');\n```" }
+        };
+        let currentFileId = 'welcome';
+        let isDarkMode = false;
+
+        function init() {
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 600);
+            }, 1500);
+
+            mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: { primaryColor: '#f0f7ff', edgeLabelBackground:'#fff' } });
+            renderFileList();
+            if(fileSystem[currentFileId]) loadFile(currentFileId);
+            initResizers();
+            if(window.innerWidth <= 768) document.getElementById('left-sidebar').classList.remove('is-collapsed'); 
+        }
+
+        // --- 文件系统操作 ---
+        function saveFS() {
+            localStorage.setItem(STORE_KEY, JSON.stringify(fileSystem));
+            document.getElementById('save-status').innerText = "Saved";
+        }
+
+        function createNewFile(parentId = 'root') {
+            const id = 'file_' + Date.now();
+            fileSystem[id] = { id, type: 'file', title: 'Untitled.md', content: '', parentId };
+            saveFS();
+            renderFileList();
+            loadFile(id);
+            return id;
+        }
+
+        function createNewFolder(parentId = 'root') {
+            const title = prompt("Folder Name:", "New Folder");
+            if(!title) return;
+            const id = 'folder_' + Date.now();
+            fileSystem[id] = { id, type: 'folder', title, parentId, isOpen: true };
+            saveFS();
+            renderFileList();
+        }
+
+        function deleteItem(e, id) {
+            e.stopPropagation();
+            if(confirm('Delete this item?')) {
+                delete fileSystem[id];
+                Object.keys(fileSystem).forEach(k => {
+                    if(fileSystem[k].parentId === id) delete fileSystem[k];
+                });
+                saveFS();
+                renderFileList();
+                if (currentFileId === id) {
+                    document.getElementById('source-view').value = '';
+                    document.getElementById('preview-view').innerHTML = '';
+                }
+            }
+        }
+
+        function renameItem(e, id) {
+            e.stopPropagation();
+            const newTitle = prompt("Rename:", fileSystem[id].title);
+            if(newTitle) {
+                fileSystem[id].title = newTitle;
+                if(id === currentFileId) document.getElementById('doc-title-input').value = newTitle;
+                saveFS();
+                renderFileList();
+            }
+        }
+        
+        function renameCurrentFile(newTitle) {
+            if(fileSystem[currentFileId]) {
+                fileSystem[currentFileId].title = newTitle;
+                saveFS();
+                renderFileList();
+            }
+        }
+
+        function toggleFolder(e, id) {
+            e.stopPropagation();
+            fileSystem[id].isOpen = !fileSystem[id].isOpen;
+            saveFS();
+            renderFileList();
+        }
+
+        // --- 渲染文件列表 ---
+        function renderFileList() {
+            const container = document.getElementById('file-list');
+            container.innerHTML = '';
+            
+            const buildTree = (parentId) => {
+                const items = Object.values(fileSystem).filter(item => item.parentId === parentId);
+                items.sort((a, b) => {
+                    if(a.type === b.type) return a.title.localeCompare(b.title);
+                    return a.type === 'folder' ? -1 : 1;
+                });
+                
+                let html = '';
+                items.forEach(item => {
+                    if(item.type === 'folder') {
+                        html += `
+                            <div class="nav-folder ${item.isOpen ? 'is-open' : ''}">
+                                <div class="nav-folder-title" onclick="toggleFolder(event, '${item.id}')" ondblclick="renameItem(event, '${item.id}')">
+                                    <i class="ri-arrow-right-s-line nav-folder-arrow"></i>
+                                    <i class="ri-folder-3-fill nav-icon" style="color:var(--text-accent)"></i>
+                                    <span style="flex-grow:1">${item.title}</span>
+                                    <i class="ri-add-line icon-btn" style="font-size:12px" title="New File Inside" onclick="createNewFile('${item.id}'); event.stopPropagation()"></i>
+                                    <i class="ri-delete-bin-line icon-btn" style="font-size:12px" title="Delete" onclick="deleteItem(event, '${item.id}')"></i>
+                                </div>
+                                <div class="nav-folder-children">${buildTree(item.id)}</div>
+                            </div>
+                        `;
+                    } else {
+                        const isActive = item.id === currentFileId ? 'is-active' : '';
+                        html += `
+                            <div class="nav-file-title ${isActive}" onclick="loadFile('${item.id}')" ondblclick="renameItem(event, '${item.id}')">
+                                <i class="ri-markdown-fill nav-icon"></i>
+                                <span style="flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.title}</span>
+                                ${isActive ? '' : `<i class="ri-delete-bin-line icon-btn" style="font-size:12px; opacity:0.5" onclick="deleteItem(event, '${item.id}')"></i>`}
+                            </div>
+                        `;
+                    }
+                });
+                return html;
+            };
+            container.innerHTML = buildTree('root');
+        }
+
+        function loadFile(id) {
+            if(!fileSystem[id] || fileSystem[id].type !== 'file') return;
+            currentFileId = id;
+            const file = fileSystem[id];
+            
+            document.getElementById('doc-title-input').value = file.title;
+            renderFileList(); 
+
+            const sourceView = document.getElementById('source-view');
+            sourceView.value = file.content;
+            
+            renderPreview(file.content);
+            updateWordCount(file.content);
+            generateOutline(file.content);
+            
+            if(window.innerWidth <= 768) {
+                const el = document.getElementById('left-sidebar');
+                if(el.classList.contains('is-open')) toggleSidebar('left');
+            }
+        }
+
+        // --- 编辑器核心 ---
+        function handleInput() {
+            const content = document.getElementById('source-view').value;
+            if(fileSystem[currentFileId]) {
+                fileSystem[currentFileId].content = content;
+                document.getElementById('save-status').innerText = "Typing...";
+                clearTimeout(window.saveTimer);
+                window.saveTimer = setTimeout(() => saveFS(), 1000);
+            }
+            // 实时预览关键修复：确保输入时立即更新
+            renderPreview(content);
+            updateWordCount(content);
+            generateOutline(content);
+        }
+
+        function renderPreview(markdown) {
+            let html = marked.parse(markdown || '');
+            html = DOMPurify.sanitize(html);
+            
+            html = html.replace(/<blockquote>\s*<p>\[!(\w+)\] (.*?)<\/p>/g, (match, type, title) => {
+                let colorVar = '--rgb: 128,128,128';
+                if(type.match(/info|note/)) colorVar = '--rgb: 0, 113, 227';
+                if(type.match(/success/)) colorVar = '--rgb: 52, 199, 89';
+                if(type.match(/warning/)) colorVar = '--rgb: 255, 149, 0';
+                if(type.match(/error|fail/)) colorVar = '--rgb: 255, 59, 48';
+                return `<div class="callout" style="${colorVar}"><div class="callout-title">${title}</div><div class="callout-content">`;
+            }).replace(/<\/blockquote>/g, '</div></div>');
+
+            const previewEl = document.getElementById('preview-view');
+            previewEl.innerHTML = html;
+
+            const mermaidBlocks = previewEl.querySelectorAll('code.language-mermaid');
+            mermaidBlocks.forEach((block, index) => {
+                const graphDef = block.textContent;
+                const pre = block.parentElement;
+                const div = document.createElement('div');
+                div.className = 'mermaid';
+                div.id = 'mermaid-' + index;
+                pre.replaceWith(div);
+                try {
+                    mermaid.render('mermaid-svg-' + index, graphDef).then(result => {
+                        div.innerHTML = result.svg;
+                    });
+                } catch(e) { div.innerText = 'Mermaid Error'; }
+            });
+        }
+
+        function setMode(mode) {
+            document.getElementById('editor-wrapper').className = `workspace-split mod-root mode-${mode}`;
+            document.querySelectorAll('.view-action').forEach(el => el.classList.remove('is-active'));
+            if(mode === 'source') document.querySelector('[title="Edit Mode"]').classList.add('is-active');
+            if(mode === 'preview') document.querySelector('[title="Reading Mode"]').classList.add('is-active');
+            if(mode === 'split') document.querySelector('[title="Split View"]').classList.add('is-active');
+        }
+
+        // --- 本地文件 I/O ---
+        function saveToLocal() {
+            if(!fileSystem[currentFileId]) return;
+            const file = fileSystem[currentFileId];
+            const blob = new Blob([file.content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.title;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const id = 'file_' + Date.now();
+                fileSystem[id] = { id, type: 'file', title: file.name, content: e.target.result, parentId: 'root' };
+                saveFS();
+                renderFileList();
+                loadFile(id);
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        // --- 辅助功能 ---
+        function updateWordCount(text) {
+            document.getElementById('word-count').innerText = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+        }
+
+        function generateOutline(text) {
+            const lines = (text || '').split('\n');
+            let outlineHtml = '';
+            lines.forEach(line => {
+                if(line.startsWith('# ')) outlineHtml += `<div style="margin-bottom:6px; cursor:pointer" onclick="scrollToHeading('${line}')">${line.replace('# ','')}</div>`;
+                else if(line.startsWith('## ')) outlineHtml += `<div style="margin-bottom:6px; margin-left:12px; color:var(--text-muted); cursor:pointer">${line.replace('## ','')}</div>`;
+            });
+            document.getElementById('outline-view').innerHTML = outlineHtml || 'No headings';
+        }
+
+        function toggleSidebar(side) {
+            const el = document.getElementById(`${side}-sidebar`);
+            if(window.innerWidth <= 768) {
+                el.classList.toggle('is-open');
+                return;
+            }
+            el.classList.toggle('is-collapsed');
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.className = isDarkMode ? 'theme-dark' : 'theme-light';
+        }
+
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function filterFiles(query) {
+            const items = document.querySelectorAll('.nav-file-title, .nav-folder');
+            items.forEach(item => {
+                if(item.classList.contains('nav-file-title')) {
+                    item.style.display = item.innerText.toLowerCase().includes(query.toLowerCase()) ? 'flex' : 'none';
+                }
+            });
+        }
+
+        function printPdf() {
+            window.print();
+        }
+
+        function initResizers() {
+            const handleRight = document.getElementById('resize-handle-right');
+            const rightSidebar = document.getElementById('right-sidebar');
+            setupResizer(handleRight, (w) => document.documentElement.style.setProperty('--sidebar-width', `${w}px`), 'right');
+
+            const handleLeft = document.getElementById('resize-handle-left');
+            const leftSidebar = document.getElementById('left-sidebar');
+            setupResizer(handleLeft, (w) => document.documentElement.style.setProperty('--left-sidebar-width', `${w}px`), 'left');
+        }
+
+        function setupResizer(handle, callback, side) {
+            let isResizing = false;
+            handle.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; });
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                let newWidth;
+                if(side === 'right') newWidth = window.innerWidth - e.clientX - 12;
+                else newWidth = e.clientX - 50 - 12;
+                if (newWidth > 150 && newWidth < 600) callback(newWidth);
+            });
+            document.addEventListener('mouseup', () => { isResizing = false; document.body.style.cursor = 'default'; });
+        }
+
+        init();
+    </script>
+</body>
+</html>
